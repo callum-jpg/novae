@@ -34,7 +34,7 @@ def prepare_adatas(
     Returns:
         A list of `AnnData` objects ready to be used by the model. If only one `adata` object is provided, it will be wrapped in a list.
     """
-    assert adata is not None or var_names is not None, "One of `adata` and `var_names` must not be None"
+    # assert adata is not None or var_names is not None, "One of `adata` and `var_names` must not be None"
 
     if adata is None:
         return None, var_names

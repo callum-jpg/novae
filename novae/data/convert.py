@@ -13,7 +13,7 @@ class AnnDataTorch:
     tensors: list[Tensor] | None
     genes_indices_list: list[Tensor]
 
-    def __init__(self, adatas: list[AnnData], cell_embedder: CellEmbedder):
+    def __init__(self, adatas: list[AnnData], cell_embedder: CellEmbedder, feature_modality: str | None = None):
         """Converting AnnData objects to PyTorch tensors.
 
         Args:
@@ -23,8 +23,14 @@ class AnnDataTorch:
         super().__init__()
         self.adatas = adatas
         self.cell_embedder = cell_embedder
+        self.feature_modality = feature_modality
 
-        self.genes_indices_list = [self._adata_to_genes_indices(adata) for adata in self.adatas]
+        if feature_modality.casefold() == "transcript":
+            self.genes_indices_list = [self._adata_to_genes_indices(adata) for adata in self.adatas]
+        elif feature_modality.casefold() == "image":
+            self.genes_indices_list = None
+        else:
+            raise ValueError
         self.tensors = None
 
         self.means, self.stds, self.label_encoder = self._compute_means_stds()
@@ -72,6 +78,12 @@ class AnnDataTorch:
         Returns:
             A `Tensor` containing the normalized gene expresions.
         """
+        # Use image features, not gene expression
+        if self.feature_modality == "image":
+            features = adata.obsm["centroid_embeddings"]
+            features = torch.tensor(features, dtype=torch.float32)
+            return features
+
         adata = adata[:, self._keep_var(adata)]
 
         if len(np.unique(adata.obs[Keys.SLIDE_ID])) == 1:
@@ -99,10 +111,19 @@ class AnnDataTorch:
         """
         adata_index, obs_indices = item
 
-        if self.tensors is not None:
-            return self.tensors[adata_index][obs_indices], self.genes_indices_list[adata_index]
+        # Uee cached tensors
+        if self.feature_modality == "image":
+            if self.tensors is not None:
+                return self.tensors[adata_index][obs_indices], None
+        else:
+            if self.tensors is not None:
+                return self.tensors[adata_index][obs_indices], self.genes_indices_list[adata_index]
 
         adata = self.adatas[adata_index]
         adata_view = adata[obs_indices]
 
-        return self.to_tensor(adata_view), self.genes_indices_list[adata_index]
+        if self.feature_modality == "image":
+            # For image features, we do not need gene indices.
+            return self.to_tensor(adata_view), None
+        else:
+            return self.to_tensor(adata_view), self.genes_indices_list[adata_index]

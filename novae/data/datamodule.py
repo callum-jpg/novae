@@ -15,6 +15,7 @@ class NovaeDatamodule(L.LightningDataModule):
         self,
         adatas: list[AnnData],
         cell_embedder: CellEmbedder,
+        feature_modality: str,
         batch_size: int,
         n_hops_local: int,
         n_hops_view: int,
@@ -25,6 +26,7 @@ class NovaeDatamodule(L.LightningDataModule):
         self.dataset = NovaeDataset(
             adatas,
             cell_embedder=cell_embedder,
+            feature_modality=feature_modality,
             batch_size=batch_size,
             n_hops_local=n_hops_local,
             n_hops_view=n_hops_view,

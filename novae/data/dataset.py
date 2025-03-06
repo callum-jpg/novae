@@ -8,6 +8,7 @@ from scipy.sparse import csr_matrix, lil_matrix
 from torch.utils.data import Dataset
 from torch_geometric.data import Data
 from torch_geometric.utils.convert import from_scipy_sparse_matrix
+from typing import Literal
 
 from .. import utils
 from .._constants import Keys, Nums
@@ -37,6 +38,7 @@ class NovaeDataset(Dataset):
         self,
         adatas: list[AnnData],
         cell_embedder: CellEmbedder,
+        feature_modality: Literal["transcript", "image", "transcript_image"],
         batch_size: int,
         n_hops_local: int,
         n_hops_view: int,
@@ -55,7 +57,7 @@ class NovaeDataset(Dataset):
         super().__init__()
         self.adatas = adatas
         self.cell_embedder = cell_embedder
-        self.anndata_torch = AnnDataTorch(self.adatas, self.cell_embedder)
+        self.anndata_torch = AnnDataTorch(self.adatas, self.cell_embedder, feature_modality)
 
         self.training = False
 
@@ -163,6 +165,8 @@ class NovaeDataset(Dataset):
         edge_attr = edge_weight[:, None].to(torch.float32) / Nums.CELLS_CHARACTERISTIC_DISTANCE
 
         x, genes_indices = self.anndata_torch[adata_index, obs_indices]
+
+        # breakpoint()
 
         return Data(
             x=x,
