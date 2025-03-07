@@ -16,6 +16,7 @@ log = logging.getLogger(__name__)
 def prepare_adatas(
     adata: AnnData | list[AnnData] | None,
     var_names: set | list[str] | None = None,
+    image: bool = False
 ) -> list[AnnData]:
     """Ensure the AnnData objects are ready to be used by the model.
 
@@ -30,11 +31,12 @@ def prepare_adatas(
     Args:
         adata: An `AnnData` object, or a list of `AnnData` objects. Optional if the model was initialized with `adata`.
         var_names: Only used when loading a pretrained model. Do not use it yourself.
+        image: If loading a pre-trained image model, accept that there are no gene names, nor anndata objects
 
     Returns:
         A list of `AnnData` objects ready to be used by the model. If only one `adata` object is provided, it will be wrapped in a list.
     """
-    # assert adata is not None or var_names is not None, "One of `adata` and `var_names` must not be None"
+    assert any(adata is not None or var_names is not None) and not image, "One of `adata` and `var_names` must not be None"
 
     if adata is None:
         return None, var_names

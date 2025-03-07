@@ -38,7 +38,7 @@ class NovaeDataset(Dataset):
         self,
         adatas: list[AnnData],
         cell_embedder: CellEmbedder,
-        feature_modality: Literal["transcript", "image", "transcript_image"],
+        feature_modality: Literal["transcript", "image"],
         batch_size: int,
         n_hops_local: int,
         n_hops_view: int,
@@ -165,8 +165,6 @@ class NovaeDataset(Dataset):
         edge_attr = edge_weight[:, None].to(torch.float32) / Nums.CELLS_CHARACTERISTIC_DISTANCE
 
         x, genes_indices = self.anndata_torch[adata_index, obs_indices]
-
-        # breakpoint()
 
         return Data(
             x=x,

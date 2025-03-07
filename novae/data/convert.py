@@ -4,7 +4,7 @@ from anndata import AnnData
 from sklearn.preprocessing import LabelEncoder
 from torch import Tensor
 
-from .._constants import Keys, Nums
+from .._constants import Keys, Nums, Opts
 from ..module import CellEmbedder
 from ..utils import sparse_std
 
@@ -30,7 +30,8 @@ class AnnDataTorch:
         elif feature_modality.casefold() == "image":
             self.genes_indices_list = None
         else:
-            raise ValueError
+            raise ValueError(f"Selected feature_modality {feature_modality} not in {Opts.SUPPORTED_MODALITIES}")
+
         self.tensors = None
 
         self.means, self.stds, self.label_encoder = self._compute_means_stds()
@@ -80,7 +81,7 @@ class AnnDataTorch:
         """
         # Use image features, not gene expression
         if self.feature_modality == "image":
-            features = adata.obsm["centroid_embeddings"]
+            features = adata.obsm["cell_image_embeddings"]
             features = torch.tensor(features, dtype=torch.float32)
             return features
 

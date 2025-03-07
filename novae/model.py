@@ -13,9 +13,9 @@ from torch import Tensor, optim
 from torch_geometric.data import Batch
 
 from . import __version__, plot, settings, utils
-from ._constants import Keys, Nums
+from ._constants import Keys, Nums, Opts
 from .data import NovaeDatamodule, NovaeDataset
-from .module import CellEmbedder, GraphAugmentation, GraphEncoder, SwavHead, IdentityEmbedder
+from .module import CellEmbedder, IdentityEmbedder, GraphAugmentation, GraphEncoder, SwavHead
 
 log = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class Novae(L.LightningModule, PyTorchModelHubMixin):
         self,
         adata: AnnData | list[AnnData] | None = None,
         embedding_size: int = 100,
-        feature_modality: Literal["transcript", "image", "transcript_image"] = "transcript",
+        feature_modality: Literal["transcript", "image"] = "transcript",
         min_prototypes_ratio: float = 0.6,
         n_hops_local: int = 2,
         n_hops_view: int = 2,
@@ -90,12 +90,13 @@ class Novae(L.LightningModule, PyTorchModelHubMixin):
                 _scgpt_var_names = self.cell_embedder.gene_names
                 self.adatas, var_names = utils.prepare_adatas(adata, var_names=_scgpt_var_names)
         elif self.feature_modality.casefold() == "image":
-            self.adatas, var_names = utils.prepare_adatas(adata, var_names=None)
+            self.adatas, var_names = utils.prepare_adatas(adata, var_names=None, image=True)
             # Identity embedder to return the input data untouched
-            # Also has a "gene_names" attribute, which is None 
+            # Also has a "gene_names" attribute, which is None.
+            # Helps avoid significant rewrite elsewhere 
             self.cell_embedder = IdentityEmbedder()
         else:
-            raise ValueError(f"feature_modality method {feature_modality} not recognised.")
+            raise ValueError(f"feature_modality {feature_modality} not in {Opts.SUPPORTED_MODALITIES}")
 
         self.save_hyperparameters(ignore=["adata", "scgpt_model_dir"])
         self.mode = utils.Mode()
@@ -221,19 +222,16 @@ class Novae(L.LightningModule, PyTorchModelHubMixin):
             self.to(device)
 
     def _embed_pyg_data(self, data: Batch) -> Batch:
-        # breakpoint()
         if settings.shuffle_nodes:
             utils.shuffle_nodes(data)
         if self.training and self.feature_modality.casefold() == "transcript":
             data = self.augmentation(data)
-        # breakpoint()
         return self.cell_embedder(data)
 
     def forward(self, batch: dict[str, Batch]) -> dict[str, Tensor]:
         return {key: self.encoder(self._embed_pyg_data(data)) for key, data in batch.items()}
 
     def training_step(self, batch: dict[str, Batch], batch_idx: int):
-        # breakpoint()
         z_dict: dict[str, Tensor] = self(batch)
         slide_id = batch["main"].get("slide_id", [None])[0]
 

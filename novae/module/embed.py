@@ -115,7 +115,6 @@ Autocorrect
         genes_embeddings = self.embedding(data.genes_indices[0])
         genes_embeddings = self.linear(genes_embeddings)
         genes_embeddings = F.normalize(genes_embeddings, dim=0, p=2)
-        # breakpoint()
         data.x = data.x @ genes_embeddings
         return data
 
@@ -127,6 +126,8 @@ Autocorrect
         """
         if adatas is None:
             return
+
+        adatas = [adata[:, adata.var[Keys.USE_GENE]] for adata in adatas]
 
         adata = max(adatas, key=lambda adata: adata.n_vars)
 
@@ -164,6 +165,15 @@ Autocorrect
 
             indices = self.genes_to_indices(other_adata[:, ~where_in].var_names)
             self.embedding.weight.data[indices] = self.embedding.weight.data[neighbor_indices].clone()
+
+def _check_gene_to_index(gene_to_index: dict[str, int]):
+    values = list(set(gene_to_index.values()))
+
+-    assert len(values) == len(gene_to_index), "gene_to_index should be a ictionnary with unique values"
+
+    assert (
+        min(values) == 0 and max(values) == len(values) - 1
+    ), "gene_to_index should be a dictionnary with continuous indices starting from 0"
 
 class IdentityEmbedder(L.LightningModule):
     def __init__(self) -> None:
